@@ -34,6 +34,7 @@ router.get('/sessions/:sessionId/files', authenticateToken, async (req: any, res
 
         res.json(response);
     } catch (error) {
+        console.error('Error fetching files by session:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -45,6 +46,7 @@ router.post('/sessions/:sessionId/files', authenticateToken, requireFileUploadFe
         const file = req.file;
 
         if (!file) {
+            console.error('No file uploaded in request');
             res.status(400).json({ error: 'No file uploaded' });
 
             return;
@@ -55,6 +57,7 @@ router.post('/sessions/:sessionId/files', authenticateToken, requireFileUploadFe
         try {
             metadata = JSON.parse(req.body.metadata);
         } catch {
+            console.error('Invalid metadata JSON:', req.body.metadata);
             res.status(400).json({ error: 'Invalid metadata JSON' });
 
             return;
@@ -74,6 +77,7 @@ router.post('/sessions/:sessionId/files', authenticateToken, requireFileUploadFe
 
         res.json(response);
     } catch (error) {
+        console.error('Error uploading file:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -85,6 +89,7 @@ router.delete('/sessions/:sessionId/files', authenticateToken, requireFileUpload
         const customerId = req.query['customer-id'] as string;
 
         if (!userId || !customerId) {
+            console.error('user-id and customer-id are required');
             res.status(400).json({ error: 'user-id and customer-id are required' });
 
             return;
@@ -93,6 +98,7 @@ router.delete('/sessions/:sessionId/files', authenticateToken, requireFileUpload
         await fileStorage.deleteFilesBySession(sessionId, userId, customerId);
         res.status(204).send();
     } catch (error) {
+        console.error('Error deleting files by session:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -125,6 +131,7 @@ router.get('/sessions/:sessionId/files/:fileId', authenticateToken, async (req: 
 
         res.json(response);
     } catch (error) {
+        console.error('Error fetching file by ID:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -136,6 +143,7 @@ router.delete('/sessions/:sessionId/files/:fileId', authenticateToken, requireFi
         const deleted = await fileStorage.deleteFile(fileId);
 
         if (!deleted) {
+            console.error('File not found for deletion:', fileId);
             res.status(404).json({ error: 'File not found' });
 
             return;
@@ -143,6 +151,7 @@ router.delete('/sessions/:sessionId/files/:fileId', authenticateToken, requireFi
 
         res.status(200).json({ message: 'File deleted successfully' });
     } catch (error) {
+        console.error('Error deleting file by ID:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -154,6 +163,7 @@ router.get('/download/:fileId', async (req, res) => {
         const fileStream = await fileStorage.getFileStream(fileId);
 
         if (!fileStream) {
+            console.error('File not found for download:', fileId);
             res.status(404).json({ error: 'File not found' });
 
             return;
@@ -164,6 +174,7 @@ router.get('/download/:fileId', async (req, res) => {
 
         fileStream.stream.pipe(res);
     } catch (error) {
+        console.error('Error downloading file:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });

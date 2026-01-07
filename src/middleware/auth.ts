@@ -24,6 +24,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
     if (!token) {
+        console.error('Access token required');
         res.status(401).json({ error: 'Access token required' });
 
         return;
@@ -50,6 +51,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         const audience = Array.isArray(decoded.aud) ? decoded.aud : [ decoded.aud ];
 
         if (!audience.includes('file-sharing')) {
+            console.error('Invalid token audience:', decoded.aud);
             res.status(403).json({ error: 'Invalid token audience' });
 
             return;
@@ -57,6 +59,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
 
         // Check issuer
         if (decoded.iss !== 'prosody') {
+            console.error('Invalid token issuer:', decoded.iss);
             res.status(403).json({ error: 'Invalid token issuer' });
 
             return;
@@ -65,6 +68,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         (req as any).user = decoded;
         next();
     } catch (error) {
+        console.error('Invalid or expired token:', error);
         res.status(403).json({ error: 'Invalid or expired token' });
     }
 };
@@ -74,6 +78,7 @@ export const requireFileUploadFeature = (req: Request, res: Response, next: Next
     const user = (req as any).user;
 
     if (!user?.context?.features?.['file-upload']) {
+        console.error('File upload feature not enabled for user:', user?.sub);
         res.status(403).json({ error: 'File upload feature not enabled' });
 
         return;
