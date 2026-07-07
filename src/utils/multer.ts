@@ -49,7 +49,7 @@ export function isExecutableBuffer(buf: Buffer): boolean {
 export const upload = multer({
     storage,
     limits: {
-        fileSize: 50 * 1024 * 1024 // 50MB limit to match nginx
+        fileSize: 100 * 1024 * 1024 // 100MB limit to match nginx
     },
     fileFilter: (_req, file, cb) => {
         if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
