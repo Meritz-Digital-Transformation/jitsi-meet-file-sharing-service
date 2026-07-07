@@ -4,6 +4,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 import { IFileMetadata, IFileRecord } from '../types';
+import { generatePresignedUrl } from '../utils/presignedUrl';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
@@ -28,8 +29,10 @@ export class FileStorageService {
     ): Promise<IFileRecord> {
         await this.ensureUploadDir();
 
-        // Use fileId from metadata if provided, otherwise generate one
-        const fileId = metadata.fileId || uuidv4();
+        // Use fileId from metadata only if it is a valid UUID, otherwise generate one.
+        // This prevents path traversal via a crafted fileId value.
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const fileId = (metadata.fileId && UUID_REGEX.test(metadata.fileId)) ? metadata.fileId : uuidv4();
         const fileExtension = path.extname(file.originalname);
         const fileName = `${fileId}${fileExtension}`;
         const filePath = path.join(UPLOAD_DIR, fileName);
@@ -40,7 +43,7 @@ export class FileStorageService {
             fileId,
             sessionId,
             fileName,
-            originalName: file.originalname,
+            originalName: Buffer.from(file.originalname, 'latin1').toString('utf8'),
             contentType: file.mimetype,
             fileSize: file.size,
             userId,
@@ -74,12 +77,16 @@ export class FileStorageService {
 
         try {
             await fs.unlink(fileRecord.filePath);
-            this.fileRecords.delete(fileId);
-
-            return true;
-        } catch {
-            return false;
+        } catch (error) {
+            // Log but do not abort: the in-memory record must still be removed to
+            // keep metadata consistent with the filesystem. An orphaned disk file
+            // is preferable to an orphaned record that blocks future uploads.
+            console.error('Failed to unlink file from disk:', fileRecord.filePath, error);
         }
+
+        this.fileRecords.delete(fileId);
+
+        return true;
     }
 
     async deleteFilesBySession(sessionId: string, userId?: string, customerId?: string): Promise<number> {
@@ -103,7 +110,7 @@ export class FileStorageService {
     }
 
     generatePreSignedUrl(fileId: string): string {
-        return `${BASE_URL}/v1/documents/download/${fileId}`;
+        return generatePresignedUrl(BASE_URL, fileId);
     }
 
     async getFileStream(fileId: string): Promise<{ contentType: string; fileName: string; stream: NodeJS.ReadableStream; } | null> {
