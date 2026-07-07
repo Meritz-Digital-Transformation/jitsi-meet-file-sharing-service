@@ -2,28 +2,6 @@ import multer from 'multer';
 
 const storage = multer.memoryStorage();
 
-// Allowlist of accepted MIME types. Executable and script types are intentionally excluded.
-export const ALLOWED_MIME_TYPES = new Set([
-    // Documents
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'application/vnd.oasis.opendocument.text',
-    'application/vnd.oasis.opendocument.spreadsheet',
-    'application/vnd.oasis.opendocument.presentation',
-    'text/plain',
-    'text/csv',
-    // Images
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/webp'
-]);
-
 /**
  * Returns true if the buffer's magic bytes indicate a native executable
  * (ELF, PE/MZ, or Mach-O), regardless of the declared MIME type.
@@ -50,13 +28,5 @@ export const upload = multer({
     storage,
     limits: {
         fileSize: 100 * 1024 * 1024 // 100MB limit to match nginx
-    },
-    fileFilter: (_req, file, cb) => {
-        if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
-            cb(new Error(`File type not allowed: ${file.mimetype}`));
-
-            return;
-        }
-        cb(null, true);
     }
 });
